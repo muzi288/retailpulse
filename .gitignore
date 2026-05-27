@@ -3,3 +3,9 @@ __pycache__/
 .env
 *.env
 .DS_Store
+# Azure
+infra/adf/parameters.json
+*.publishsettings
+
+# Databricks
+.databricks/
