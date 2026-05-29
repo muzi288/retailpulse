@@ -109,20 +109,20 @@ simulator and pipeline simplicity.
 
 **Context:**
 E-commerce orders with fulfillment_type = delivery have no associated 
-store_id. Storing NULL in store_id causes delivery revenue to appear 
-under a NULL group in store-level aggregations, making it invisible 
-to business analysts.
+store_id. Storing NULL causes delivery revenue to appear under a NULL 
+group in store-level aggregations.
 
 **Decision:**
-In the Silver transformation, replace NULL store_id with 'ONLINE_DELIVERY' 
-for all delivery orders using a conditional column expression.
+Assign store_id = 'ONLINE_DELIVERY' for all delivery orders at the 
+producer level — in the FastAPI mock server itself. This means NULL 
+never enters the pipeline.
 
 **Consequences:**
-- Store-level revenue aggregations in Gold are complete and readable
-- ONLINE_DELIVERY appears as a named channel alongside physical stores
-- No revenue is silently lost under a NULL group
-- Silver transformation must always apply this rule before writing 
-  Delta tables
+- NULL never lands in Bronze — problem eliminated at source
+- Silver transformation requires no special NULL handling for store_id
+- ONLINE_DELIVERY appears as a named channel in all store aggregations
+- In a real system this would be enforced at the source API level,
+  not patched in Silver — same principle applies
 
 
   ## Engineering Notes: Bugs & Difficulties Encountered
