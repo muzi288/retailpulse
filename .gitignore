@@ -10,3 +10,4 @@ infra/adf/parameters.json
 # Databricks
 .databricks/
 venv/
+output/
