@@ -7,7 +7,6 @@ import os
 
 fake = Faker()
 
-# Config
 STORE_IDS = ["STORE_001", "STORE_002", "STORE_003"]
 PAYMENT_METHODS = ["cash", "card", "mobile_money"]
 
@@ -22,32 +21,60 @@ PRODUCTS = [
     {"product_id": "SKU_008", "product_name": "Chicken 1kg", "unit_price": 6.99},
 ]
 
+
 def generate_transactions(date: datetime) -> pd.DataFrame:
-    NUM_TRANSACTIONS = random.randint(50, 200)
+    num_transactions = random.randint(50, 200)
     records = []
 
-    for _ in range(NUM_TRANSACTIONS):
-        product = random.choice(PRODUCTS)
-        quantity = random.randint(1, 10)
-        discount = round(random.uniform(0, 1.50), 2)
-        total = round((quantity * product["unit_price"]) - discount, 2)
+    for _ in range(num_transactions):
+        transaction_id = str(uuid.uuid4())
+        store_id = random.choice(STORE_IDS)
+        customer_id = f"CUST_{random.randint(1000, 9999)}"
+        payment_method = random.choice(PAYMENT_METHODS)
+        transaction_time = fake.date_time_between(
+            start_date=date.replace(hour=0, minute=0, second=0),
+            end_date=date.replace(hour=23, minute=59, second=59)
+        ).isoformat()
 
-        records.append({
-            "transaction_id": str(uuid.uuid4()),
-            "store_id": random.choice(STORE_IDS),
-            "customer_id": f"CUST_{random.randint(1000, 9999)}",
-            "product_id": product["product_id"],
-            "product_name": product["product_name"],
-            "quantity": quantity,
-            "unit_price": product["unit_price"],
-            "discount_applied": discount,
-            "total_amount": total,
-            "payment_method": random.choice(PAYMENT_METHODS),
-            "transaction_time": fake.date_time_between(
-                start_date=date.replace(hour=0, minute=0, second=0),
-                end_date=date.replace(hour=23, minute=59, second=59)
-            ).isoformat(),
-        })
+        # Each transaction has 1-5 line items, no duplicate products
+        num_items = random.randint(1, 5)
+        basket = random.sample(PRODUCTS, num_items)
+
+        # PASS 1: calculate all line totals and basket total first
+        basket_items = []
+        transaction_total = 0
+
+        for product in basket:
+            quantity = random.randint(1, 10)
+            discount = round(random.uniform(0, 1.50), 2)
+            line_total = round((quantity * product["unit_price"]) - discount, 2)
+            transaction_total += line_total
+            basket_items.append({
+                "product": product,
+                "quantity": quantity,
+                "discount": discount,
+                "line_total": line_total
+            })
+
+        transaction_total = round(transaction_total, 2)
+
+        # PASS 2: write rows now that transaction_total is final
+        for idx, item in enumerate(basket_items):
+            records.append({
+                "transaction_id": transaction_id,
+                "line_item_id": f"{transaction_id}_LI_{idx + 1:03d}",
+                "store_id": store_id,
+                "customer_id": customer_id,
+                "product_id": item["product"]["product_id"],
+                "product_name": item["product"]["product_name"],
+                "quantity": item["quantity"],
+                "unit_price": item["product"]["unit_price"],
+                "discount_applied": item["discount"],
+                "line_total": item["line_total"],
+                "transaction_total": transaction_total,
+                "payment_method": payment_method,
+                "transaction_time": transaction_time,
+            })
 
     return pd.DataFrame(records)
 
@@ -62,7 +89,6 @@ def save_csv(df: pd.DataFrame, date: datetime):
 
 
 if __name__ == "__main__":
-    # Generate last 7 days of data
     for i in range(7):
         date = datetime.now() - timedelta(days=i)
         df = generate_transactions(date)

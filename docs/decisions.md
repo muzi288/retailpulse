@@ -103,3 +103,32 @@ simulator and pipeline simplicity.
 - In production, aggregations at Gold layer would need to GROUP BY 
   order_id before summing revenue to avoid double-counting
 
+  ## Engineering Notes: Bugs & Difficulties Encountered
+
+### BUG-001: Premature transaction_total accumulation in POS simulator
+**Date:** 2026-05-29
+**File:** data-sources/pos-simulator/generate_pos_data.py
+
+**Problem:**
+transaction_total was being written to each row inside the basket loop
+as items were being added. This meant each line item row had a different
+transaction_total — only the last row had the correct basket total.
+
+Example with 3 item basket (correct total = 36.96):
+- LI_001 had transaction_total = 25.98 (only item 1 accumulated)
+- LI_002 had transaction_total = 34.47 (items 1+2 accumulated)
+- LI_003 had transaction_total = 36.96 (all items accumulated — correct)
+
+**Fix:**
+Split into two passes:
+- Pass 1: iterate basket, calculate all line_totals, accumulate 
+  transaction_total fully
+- Pass 2: iterate calculated items, write rows with final 
+  transaction_total on every row
+
+**Lesson:**
+When writing denormalised flat files where a parent-level value depends 
+on aggregating child-level values, always complete the aggregation before 
+writing any rows. Never write while aggregating.
+
+
