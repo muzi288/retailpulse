@@ -103,6 +103,28 @@ simulator and pipeline simplicity.
 - In production, aggregations at Gold layer would need to GROUP BY 
   order_id before summing revenue to avoid double-counting
 
+## ADR-006: NULL store_id handling for delivery orders
+**Date:** 2026-05-29
+**Status:** Accepted
+
+**Context:**
+E-commerce orders with fulfillment_type = delivery have no associated 
+store_id. Storing NULL in store_id causes delivery revenue to appear 
+under a NULL group in store-level aggregations, making it invisible 
+to business analysts.
+
+**Decision:**
+In the Silver transformation, replace NULL store_id with 'ONLINE_DELIVERY' 
+for all delivery orders using a conditional column expression.
+
+**Consequences:**
+- Store-level revenue aggregations in Gold are complete and readable
+- ONLINE_DELIVERY appears as a named channel alongside physical stores
+- No revenue is silently lost under a NULL group
+- Silver transformation must always apply this rule before writing 
+  Delta tables
+
+
   ## Engineering Notes: Bugs & Difficulties Encountered
 
 ### BUG-001: Premature transaction_total accumulation in POS simulator
