@@ -125,6 +125,49 @@ never enters the pipeline.
   not patched in Silver — same principle applies
 
 
+## ADR-007: Email Hashing at Producer Level
+**Date:** 2026-05-29
+**Status:** Accepted
+
+**Context:**
+Customer emails are personally identifiable information (PII). Bronze 
+is a raw landing zone accessible to data engineers. Storing raw emails 
+in Bronze exposes PII in the event of a data breach.
+
+**Decision:**
+Hash customer emails using SHA-256 at the producer level — in the 
+FastAPI mock server before the data enters the pipeline. Raw emails 
+never land in Bronze.
+
+**Consequences:**
+- PII protected at point of ingestion — privacy by design
+- Emails are irreversible — cannot be unhashed back to real emails
+- Cross-system customer matching by email is still possible — 
+  same email always produces same hash
+- In production, a real e-commerce system would hash at the API 
+  response level before ADF ingests
+
+## ADR-008: units_ordered vs units_received in Inventory Schema
+**Date:** 2026-05-29
+**Status:** Accepted
+
+**Context:**
+Supplier deliveries do not always match purchase orders. Under-delivery,
+over-delivery, and damaged goods are common in retail supply chains.
+
+**Decision:**
+Store both units_ordered and units_received as separate fields in the 
+inventory schema.
+
+**Consequences:**
+- Discrepancies are auditable — business can claim refunds or returns
+- Gold layer low_stock_alerts uses units_received for current_stock 
+  calculation, not units_ordered
+- Silver layer flags records where units_received != units_ordered 
+  as exceptions for review
+- Mirrors real warehouse management system (WMS) behaviour
+
+
   ## Engineering Notes: Bugs & Difficulties Encountered
 
 ### BUG-001: Premature transaction_total accumulation in POS simulator
