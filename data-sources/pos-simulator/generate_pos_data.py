@@ -8,7 +8,6 @@ import os
 fake = Faker()
 
 # Config
-NUM_TRANSACTIONS = random.randint(50, 200)
 STORE_IDS = ["STORE_001", "STORE_002", "STORE_003"]
 PAYMENT_METHODS = ["cash", "card", "mobile_money"]
 
@@ -24,6 +23,7 @@ PRODUCTS = [
 ]
 
 def generate_transactions(date: datetime) -> pd.DataFrame:
+    NUM_TRANSACTIONS = random.randint(50, 200)
     records = []
 
     for _ in range(NUM_TRANSACTIONS):
