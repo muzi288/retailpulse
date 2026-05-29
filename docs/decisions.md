@@ -208,6 +208,25 @@ pushing its daily export to the cloud landing zone.
   on-premise POS systems to ADF
 - The ingestion pattern is identical — only the source location differs
 
+## ADR-011: ADF dynamic content for date-partitioned Bronze sink
+**Date:** 2026-05-29
+**Status:** Accepted
+
+**Context:**
+ADF Pipeline 1 needs to write POS CSVs to date-partitioned folders 
+in Bronze. Hardcoding the date would break the pipeline daily.
+
+**Decision:**
+Use ADF dynamic content expression in the Sink dataset directory field:
+pos/@{formatDateTime(utcNow(), 'yyyy-MM-dd')}
+
+This automatically creates the correct date folder on each run.
+
+**Consequences:**
+- Pipeline is reusable daily without modification
+- Bronze layer is correctly date-partitioned
+- Databricks can read partitions efficiently by date
+
 
   ## Engineering Notes: Bugs & Difficulties Encountered
 
