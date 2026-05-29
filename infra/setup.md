@@ -42,3 +42,18 @@ az datafactory create \
   --name adf-retailpulse-muzi \
   --resource-group rg-retailpulse-dev \
   --location southafricanorth
+
+## 6. Upload POS CSV files to Bronze layer
+
+# Load credentials
+source .env
+
+# Upload 7 days of POS data
+for date in 2026-05-23 2026-05-24 2026-05-25 2026-05-26 2026-05-27 2026-05-28 2026-05-29; do
+  az storage fs file upload \
+    --account-name retailpulsedatalake \
+    --file-system bronze \
+    --path pos/${date}/pos_transactions_${date}.csv \
+    --source data-sources/pos-simulator/output/${date}/pos_transactions_${date}.csv \
+    --account-key $ADLS_ACCOUNT_KEY
+done
