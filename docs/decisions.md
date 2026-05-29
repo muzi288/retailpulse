@@ -167,6 +167,27 @@ inventory schema.
   as exceptions for review
 - Mirrors real warehouse management system (WMS) behaviour
 
+## ADR-009: last_restocked_date NULL handling in inventory
+**Date:** 2026-05-29
+**Status:** Accepted
+
+**Context:**
+last_restocked_date should only be NULL for products that have never 
+been successfully restocked at a given store. For existing products 
+with active purchase orders in_transit or ordered status, a previous 
+restock date must exist reflecting real operational history.
+
+**Decision:**
+NULL last_restocked_date is only valid for genuinely new product-store 
+combinations. All other records carry a historical restock date even 
+when current order is pending delivery.
+
+**Consequences:**
+- Seed data reflects realistic operational history
+- Silver layer can flag truly new product-store combinations separately
+- Gold layer stock velocity calculations are meaningful — time between 
+  restocks can be calculated
+
 
   ## Engineering Notes: Bugs & Difficulties Encountered
 
