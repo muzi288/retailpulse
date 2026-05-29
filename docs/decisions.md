@@ -59,7 +59,34 @@ Bronze → Silver → Gold pipeline.
 
 ---
 
-## ADR-004: Simplified E-commerce Order Schema  
+## ADR-005: Denormalised POS CSV Structure
+**Date:** 2026-05-29
+**Status:** Accepted
+
+**Context:**
+Real POS systems store transactions and line items in separate normalised 
+tables. A transaction has one row in the transactions table and multiple 
+rows in the line_items table linked by transaction_id.
+
+**Decision:**
+The POS CSV simulator outputs a single denormalised flat file containing 
+both transaction-level fields (transaction_id, store_id, customer_id, 
+payment_method, transaction_total, transaction_time) and line-item-level 
+fields (line_item_id, product_id, quantity, unit_price, discount_applied, 
+line_total) in every row.
+
+**Consequences:**
+- Simpler to generate and ingest in one ADF copy activity
+- transaction_total is repeated across all line items belonging to the 
+  same transaction — must never be SUMmed directly in Gold aggregations
+- Silver layer is responsible for splitting into two normalised Delta 
+  tables: dim_transactions and fact_line_items
+- Gold layer daily_revenue must SUM(line_total), never SUM(transaction_total)
+- This mirrors real-world Bronze landing patterns where source exports 
+  are often flat files regardless of the underlying normalised schema
+
+
+## ADR-005: Simplified E-commerce Order Schema  
 **Date:** 2026-05-29
 **Status:** Accepted
 
