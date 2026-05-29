@@ -188,6 +188,26 @@ when current order is pending delivery.
 - Gold layer stock velocity calculations are meaningful — time between 
   restocks can be calculated
 
+## ADR-010: Local simulation of POS CSV ingestion
+**Date:** 2026-05-29
+**Status:** Accepted
+
+**Context:**
+ADF is a cloud service and cannot directly access files on a local 
+machine. Real POS systems push CSV exports to a shared location 
+(SFTP, Azure Blob) that ADF can reach.
+
+**Decision:**
+Python POS simulator runs locally and uploads CSVs directly to ADLS 
+Gen2 Bronze container using Azure CLI. This simulates the POS system 
+pushing its daily export to the cloud landing zone.
+
+**Consequences:**
+- ADF ingests from ADLS Gen2 Bronze, not from local machine
+- In production, a Self-hosted Integration Runtime would bridge 
+  on-premise POS systems to ADF
+- The ingestion pattern is identical — only the source location differs
+
 
   ## Engineering Notes: Bugs & Difficulties Encountered
 
