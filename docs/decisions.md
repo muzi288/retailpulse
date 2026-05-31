@@ -227,6 +227,42 @@ This automatically creates the correct date folder on each run.
 - Bronze layer is correctly date-partitioned
 - Databricks can read partitions efficiently by date
 
+## ADR-012: ForEach pipeline for date-partitioned Bronze ingestion
+**Date:** 2026-05-30
+**Status:** Accepted
+
+**Context:**
+The initial ADF pipeline used a single Copy activity with utcNow() 
+for the Bronze sink folder. This meant all files would land in today's 
+date folder regardless of the actual transaction date in the filename.
+For backfilling historical data, this produces incorrect partitioning.
+
+**Decision:**
+Restructured pl_ingest_pos_csv to use three activities:
+1. Get Metadata — lists all files in staging/pos/
+2. ForEach — iterates over each file
+3. Copy — extracts the date from the filename using 
+   substring(item().name, 17, 10) and writes to bronze/pos/{date}/
+
+**Why substring(item().name, 17, 10):**
+Filename format: pos_transactions_2026-05-29.csv
+- Characters 0-16: 'pos_transactions_' (17 characters, 0-indexed)
+- Characters 17-26: '2026-05-29' (10 characters)
+substring(name, 17, 10) extracts exactly the date portion.
+
+**Consequences:**
+- Each file lands in the correct date-partitioned Bronze folder 
+  regardless of when the pipeline runs
+- Historical backfilling works correctly
+- Pipeline is reusable daily — new files in staging get correct dates
+- If filename format ever changes, substring indices must be updated
+- Non-technical explanation: pipeline reads the date label on each 
+  file and files it in the correct date folder automatically
+
+**Alternative considered:**
+Single Copy activity with utcNow() — rejected because it breaks 
+historical backfilling and produces incorrect date partitioning.
+
 
   ## Engineering Notes: Bugs & Difficulties Encountered
 
