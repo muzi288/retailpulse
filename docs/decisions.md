@@ -289,8 +289,75 @@ staging.
 - Clear boundary between ingested and pending files
 - If Copy succeeds but Delete fails, file remains in staging — 
   next pipeline run will attempt to copy again (idempotent)
-- No archive trail — acceptable for portfolio project
+- No archive trail
 - In production, archive pattern would be preferred for audit purposes
+
+## ADR-014: Unity Catalog + Managed Identity for ADLS Gen2 Access
+**Date:** 2026-05-31
+**Status:** Accepted
+
+**Context:**
+Databricks serverless compute does not support spark.conf.set() for 
+storage credentials. A secure, production-grade authentication method 
+is required for Databricks to access ADLS Gen2.
+
+**Decision:**
+Use Azure Managed Identity via Access Connector for Azure Databricks, 
+registered as a Storage Credential in Unity Catalog, with External 
+Locations pointing to each medallion layer container.
+
+**Setup steps:**
+1. Created App Registration (sp-retailpulse-dev) — application identity
+2. Created Access Connector (ac-retailpulse-dev) — Databricks managed 
+   identity for accessing Azure storage
+3. Granted Access Connector 'Storage Blob Data Contributor' role on 
+   retailpulsedatalake storage account
+4. Registered Storage Credential (cred-retailpulse-adls) in Unity 
+   Catalog using the Access Connector resource ID
+5. Created External Locations for each container:
+   - ext-bronze → abfss://bronze@retailpulsedatalake.dfs.core.windows.net/
+   - ext-silver → abfss://silver@retailpulsedatalake.dfs.core.windows.net/
+   - ext-gold   → abfss://gold@retailpulsedatalake.dfs.core.windows.net/
+6. Created Unity Catalog: retailpulse
+7. Created schemas: bronze, silver, gold — each linked to its 
+   corresponding external location
+
+**Why Managed Identity over Service Principal:**
+Managed Identity credentials are handled by Azure automatically — 
+no passwords to rotate, no secrets to manage. More secure and less 
+operational overhead than Service Principal.
+
+**Why Unity Catalog:**
+Single governance layer for all data, users, and permissions across 
+the lakehouse. Required for table-level access control and data lineage.
+Enables SQL-based access to Delta tables without knowing storage paths.
+
+**Consequences:**
+- No credentials in notebook code — authentication is transparent
+- Any notebook in the workspace can access Bronze/Silver/Gold via 
+  the abfss:// path without additional configuration
+- Unity Catalog tracks all table reads and writes as lineage
+- Production-grade setup identical to enterprise Databricks deployments
+
+## ADR-015: Serverless Compute over Classic Clusters
+**Date:** 2026-05-31
+**Status:** Accepted
+
+**Context:**
+New Azure Databricks workspaces created after April 2026 no longer 
+expose classic cluster creation in the default UI. Multiple approaches 
+to enable classic clusters were attempted and failed.
+
+**Decision:**
+Use Databricks Serverless compute for all notebook execution.
+
+**Consequences:**
+- Notebooks start instantly — no cluster warmup time
+- Pay per second of actual compute used
+- Slightly higher per-compute-unit cost than classic clusters
+- All PySpark code is identical — serverless vs classic is transparent
+- Cannot set spark.conf directly — must use Unity Catalog for auth
+- Modern pattern — serverless is the direction Databricks is moving
 
 
   ## Engineering Notes: Bugs & Difficulties Encountered

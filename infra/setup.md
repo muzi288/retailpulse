@@ -57,3 +57,11 @@ for date in 2026-05-23 2026-05-24 2026-05-25 2026-05-26 2026-05-27 2026-05-28 20
     --source data-sources/pos-simulator/output/${date}/pos_transactions_${date}.csv \
     --account-key $ADLS_ACCOUNT_KEY
 done
+
+## 7. Create Databricks Workspace
+
+az databricks workspace create \
+  --name dbw-retailpulse-dev \
+  --resource-group rg-retailpulse-dev \
+  --location northeurope \
+  --sku trial
