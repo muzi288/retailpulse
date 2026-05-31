@@ -263,6 +263,35 @@ substring(name, 17, 10) extracts exactly the date portion.
 Single Copy activity with utcNow() — rejected because it breaks 
 historical backfilling and produces incorrect date partitioning.
 
+## ADR-013: Delete activity for staging cleanup after ingestion
+**Date:** 2026-05-30
+**Status:** Accepted
+
+**Context:**
+After ADF copies files from staging to Bronze, the files remain in 
+staging indefinitely. Without cleanup, staging grows unbounded and 
+it becomes impossible to tell which files have been ingested.
+
+**Decision:**
+Add a Delete activity inside the ForEach, connected after the Copy 
+activity. On each iteration — copy file to Bronze, then delete from 
+staging.
+
+**Alternatives considered:**
+- Archive to staging/archive/{date}/ — keeps audit trail but adds 
+  complexity. Appropriate for production, overkill for portfolio.
+- Manual cleanup via CLI — error-prone, not automated.
+- Keep files in staging — staging grows indefinitely, no clear 
+  ingestion boundary.
+
+**Consequences:**
+- Staging is always empty after a successful pipeline run
+- Clear boundary between ingested and pending files
+- If Copy succeeds but Delete fails, file remains in staging — 
+  next pipeline run will attempt to copy again (idempotent)
+- No archive trail — acceptable for portfolio project
+- In production, archive pattern would be preferred for audit purposes
+
 
   ## Engineering Notes: Bugs & Difficulties Encountered
 
